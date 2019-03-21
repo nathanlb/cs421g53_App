@@ -45,13 +45,13 @@ while(True):
      if(choice == 2):
           cur = conn.cursor()
           cur.execute("SELECT * FROM cs421g53.Users;")
-          conn.comit()
+          conn.commit()
           cur.close()
 
      # Choice 3
      elif(choice == 3):
           cur = conn.cursor()
           cur.execute("SELECT * FROM cs421g53.Users;")
-          conn.comit()
+          conn.commit()
           cur.close()
 
