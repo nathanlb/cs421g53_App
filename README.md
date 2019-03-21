@@ -4,6 +4,7 @@
 
 ## PRE-RUN SETUP:
 sudo pip3 install psycopg2
+
 sudo pip3 install psycopg2-binary
 
 This file is meant to run using Python 3
