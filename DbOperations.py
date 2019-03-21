@@ -8,20 +8,25 @@ import random, string
 def getRandID():
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))
 
-def verifyUser( cur, email ):
-    cur.execute("SELECT email FROM cs421g53.users WHERE email = %s", email)
-    fetchedUser = cur.fetchone()
-    return fetchedUser != None
+# Returns true if entry exists
+def entryExists( cur, input, table, field):
+    cur.execute("SELECT %s FROM cs421g53.%s WHERE %s = %s", (field, table, input, input))
+    fetched = cur.fetchone()
+    return fetched != None
 
-def insertUser( cur, id, username, password, birthday, email ):
-
+# Insert new user into table
+def insertUser( conn, cur, id, username, password, birthday, email ):
     newID = getRandID()
-    cur.execute("SELECT  FROM cs421g53.users WHERE email = %s", email)
-    fetchedUser = cur.fetchone()
+    while entryExists( cur, getRandID(), "users", email):
+        newID = getRandID()
 
-    cur.execute("INSERT INTO cs421g53.users (id, user_name, user_password, birthday, email, score) values ('%s', '%s', '%s', '%s', '%s', 0)", (id, username, password, birthday, email))
+    cur.execute("INSERT INTO cs421g53.users (id, user_name, user_password, birthday, email, score) values ('%s', '%s', '%s', '%s', '%s', 0)", (newID, username, password, birthday, email))
+    conn.commit()
 
-def createUser():
+def createUser(conn, cur):
+    while true:
+        username = input("Enter Username: ")
+        
 
 
 # Login
