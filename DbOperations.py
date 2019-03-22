@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import random, string
+import datetime
 
 # Create User
 #    - verify user doesn't exist
@@ -15,17 +16,44 @@ def entryExists( cur, input, table, field):
     return fetched != None
 
 # Insert new user into table
-def insertUser( conn, cur, id, username, password, birthday, email ):
+def insertUser( conn, cur, username, password, birthday, email ):
     newID = getRandID()
-    while entryExists( cur, getRandID(), "users", email):
+    while entryExists( cur, newID, 'users', 'user_id'):
         newID = getRandID()
 
     cur.execute("INSERT INTO cs421g53.users (id, user_name, user_password, birthday, email, score) values ('%s', '%s', '%s', '%s', '%s', 0)", (newID, username, password, birthday, email))
     conn.commit()
+    return entryExists( cur, newID, 'users', 'user_id')
+
+def validDate( date ):
+    try:
+        datetime.datetime.strptime(date, '%m/%d/%Y')
+    except ValueError:
+        raise ValueError("Incorrect data format, should be MM/DD/YYYY")
 
 def createUser(conn, cur):
     while true:
         username = input("Enter Username: ")
+        if len(username) <= 255:
+                break
+    while true:
+        password = input("Enter Password: ")
+        if len(password) <= 255:
+                break
+    while true:
+        birthday = input("Enter Birthday (MM/DD/YYYY): ")
+        if validDate(birthday):
+                break
+
+    while true:
+        email = input("Enter email: ")
+        if len(email) <= 255 and not entryExists(cur, email, 'users', 'email'):
+                break
+   
+   if insertUser(conn, cur, username, password, birthday, email):
+           print("\nUser successfully created!\n")
+
+
         
 
 
