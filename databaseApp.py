@@ -21,7 +21,7 @@ from psycopg2 import sql
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=cs421 user=cs421g53 password=group5353 host=comp421.cs.mcgill.ca port=5432")
-
+currentUser = ""
 
 # Create User
 #    - verify user doesn't exist
@@ -31,14 +31,12 @@ def getRandID():
 
 # Returns true if entry exists
 def entryExists( cur, input, table, field):
-    #table = "cs421g53."+table
     query = sql.SQL("SELECT {} FROM {} WHERE {} = %s").format(
           sql.Identifier( field ),
           sql.Identifier( table ),
           sql.Identifier( field )
     )
     data = (input,)
-    print(query.as_string(conn))
     cur.execute(query, data)
     fetched = cur.fetchone()
     return fetched != None
@@ -51,8 +49,6 @@ def insertUser( cur, username, password, birthday, email ):
 
     SQL = "INSERT INTO cs421g53.users (user_id, user_name, user_password, birthday, email, score) values (%s, %s, %s, %s, %s, 0)"
     Data = (newID, username, password, birthday, email,)
-    print(Data)
-    input("Press Enter")
     cur.execute(SQL, Data)
     conn.commit()
     return entryExists( cur, newID, 'users', 'user_id')
@@ -86,12 +82,38 @@ def createUser(cur):
     if insertUser(cur, username, password, birthday, email):
            print("\nUser successfully created!\n")
 
-
 # Login
 #    - verify user exists
 #    - compare password
-def login():
-     print("temp")
+
+def validatePassword(cur, username, password):
+     query = "SELECT user_password FROM users WHERE user_name = %s AND user_password = %s"
+     data = (username, password)
+
+     cur.execute(query, data)
+     fetched = cur.fetchone()
+     return fetched != None
+
+def login(cur):
+     global currentUser
+     while True:
+          username = input("Enter Username: ")
+          if len(username) <= 255 and entryExists(cur, username, 'users', 'user_name'):
+               break
+          elif username == 'q':
+               return False
+          else:
+               print("Username does not exist.")
+
+     while True:
+          password = input("Enter Password: ")
+          if len(username) <= 255 and validatePassword(cur, username, password):
+               currentUser = username
+               return True
+          elif password == 'q':
+               return False
+          else:
+               print("Invalid password")
 
 # Create Post 
 #    - generate new post id
@@ -136,7 +158,7 @@ def clear():
 def main():
      print("\n\n\n\n")
      while(True):
-          raw_choice = input("Welcome to Cookbook!\nSelection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. Make Reciper Review \n 6. Quit \n\nYour choice: ")
+          raw_choice = input("Welcome to Cookbook "+currentUser+"!\nSelection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. Make Reciper Review \n 6. Quit \n\nYour choice: ")
           choice = 0
           try:
                choice = int(raw_choice)
@@ -166,8 +188,7 @@ def main():
                # Choice 2
                if(choice == 2):
                     cur = conn.cursor()
-                    cur.execute("SELECT * FROM cs421g53.Users;")
-                    conn.commit()
+                    login(cur)
                     cur.close()
 
                # Choice 3
