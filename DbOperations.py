@@ -50,11 +50,8 @@ def createUser(conn, cur):
         if len(email) <= 255 and not entryExists(cur, email, 'users', 'email'):
                 break
    
-   if insertUser(conn, cur, username, password, birthday, email):
+    if insertUser(conn, cur, username, password, birthday, email):
            print("\nUser successfully created!\n")
-
-
-        
 
 
 # Login
