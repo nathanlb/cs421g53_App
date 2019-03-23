@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-import random, string
 import datetime
+import random
+import string
+
+import psycopg2
 
 # Create User
 #    - verify user doesn't exist
