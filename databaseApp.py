@@ -25,6 +25,7 @@ conn = psycopg2.connect("dbname=cs421 user=cs421g53 password=group5353 host=comp
 
 # Current logged in user
 currentUser = ""
+currentUserId = ""
 
 
 #---------------------------Function Definitions-----------------------------------
@@ -71,7 +72,10 @@ def insertUser( cur, username, password, birthday, email ):
      Data = (newID, username, password, birthday, email,)
      cur.execute(SQL, Data)
      conn.commit()
-     return entryExists( cur, newID, 'users', 'user_id')
+     if entryExists( cur, newID, 'users', 'user_id'):
+          return newID
+     else:
+          return None
 
 
 def validDate( date ):
@@ -84,6 +88,7 @@ def validDate( date ):
 
 def createUser(cur):
      global currentUser
+     global currentUserId
      while True:
           username = input("Enter Username [type 'q' to quit]: ")
           if username == 'q':
@@ -112,10 +117,13 @@ def createUser(cur):
                return False
           elif len(email) <= 255 and not entryExists(cur, email, 'users', 'email'):
                 break
-     if insertUser(cur, username, password, birthday, email):
+
+     newID = insertUser(cur, username, password, birthday, email)
+     if newID:
           clear()
           print("\nUser successfully created!\n")
           currentUser = username
+          currentUserId = newID
           return True
 
 
@@ -124,15 +132,19 @@ def createUser(cur):
 #    - verify user exists
 #    - compare password
 def validatePassword(cur, username, password):
-     query = "SELECT user_password FROM users WHERE user_name = %s AND user_password = %s"
+     query = "SELECT user_id FROM users WHERE user_name = %s AND user_password = %s"
      data = (username, password)
      cur.execute(query, data)
      fetched = cur.fetchone()
-     return fetched != None
+     if fetched:
+          return fetched
+     else:
+          return False
 
 
 def login(cur):
      global currentUser
+     global currentUserId
      while True:
           username = input("Enter Username [type 'q' to quit]: ")
           if username == 'q':
@@ -148,12 +160,14 @@ def login(cur):
           if password == 'q':
                clear()
                return False
-          elif len(username) <= 255 and validatePassword(cur, username, password):
-               currentUser = username
-               clear()
-               return True
-          else:
-               print("Invalid password")
+          elif len(password) <= 255:
+               ID = validatePassword(cur, username, password)
+               if ID:
+                    currentUser = username
+                    currentUserId = ID
+                    clear()
+                    return True
+          print("Invalid password")
 
 
 # -----------------------------------------------------------------------------------------------
@@ -209,13 +223,86 @@ def createPost(cur):
 #    - display restaurants in db with index
 #    - user chooses index
 #    - insert review with input parameters
-def displayRestaurants():
-     print("temp")
+def displayRestaurants(cur):
+     cur.execute("SELECT restaurant_id, restaurant_name FROM restaurants")
+     fetched = cur.fetchall()
+     if fetched:
+          print("\nRestaurants:\n")
+          for i in range(0, len(fetched)):
+               print(str(i)+". "+str(fetched[i][1]))
+          return fetched
+     else:
+          print("No restaurants in database")
+          return None
 
+def getResReviewIndex(cur, resId):
+     SQL = "SELECT MAX(restaurant_rev_index) FROM restaurant_reviews WHERE restaurant_id = %s"
+     Data = (resId,)
 
-def createResReview():
-     print("temp")
+     cur.execute(SQL, Data)
+     index = cur.fetchone()
+     if index[0] != None:
+          return index[0]+1
+     else:
+          return 0
 
+def insertResReview(cur, resId, foodR, servR):
+     revIndex = getResReviewIndex(cur, resId)
+
+     SQL = "INSERT INTO restaurant_reviews (restaurant_rev_index, food_rating, service_rating, restaurant_id, user_id) values (%s, %s, %s, %s, %s)"
+     Data = (revIndex, foodR, servR, resId, currentUserId)
+     cur.execute(SQL, Data)
+     conn.commit()
+
+     return entryExists( cur, revIndex, 'restaurant_reviews', 'restaurant_rev_index')
+
+def createResReview(cur):
+     if currentUser != "":
+          resList = displayRestaurants(cur)
+          if resList:
+               while True:
+                    strIndex = input("Enter index of restaurant to review [type 'q' to quit]: ")
+                    try:
+                         index = int(strIndex)
+                         if index >= 0 and index < len(resList):
+                              break
+                         elif index == 'q':
+                              return False
+                    except:
+                         print("Incvalid index!")
+                         continue
+               while True:
+                    strFoodRating = input("Enter food rating [0,5] [type 'q' to quit]: ")
+                    try:
+                         foodRating = int(strFoodRating)
+                         if foodRating >= 0 and foodRating <= 5:
+                              break
+                         elif index == 'q':
+                              return False
+                    except:
+                         print("Invalid rating!")
+                         continue
+               
+               while True:
+                    strServRating = input("Enter service rating [0,5] [type 'q' to quit]: ")
+                    try:
+                         servRating = int(strServRating)
+                         if servRating >= 0 and servRating <= 5:
+                              break
+                         elif index == 'q':
+                              return False
+                    except:
+                         print("Invalid rating!")
+                         continue
+               
+               if insertResReview(cur, resList[index][0], foodRating, servRating):
+                    print("\nRestaurant review successfully submitted.\n")
+          else:
+               return False
+     else:
+          clear()
+          print("\nYou must be logged in to submit a review.\n")
+          return False
 
 # -----------------------------------------------------------------------------------------------
 # Submit Recipe Review
@@ -240,7 +327,7 @@ def main():
                print("Welcome to Cookbook! You are not logged in.")
           else:
                print("Welcome to Cookbook "+currentUser+"!")
-          raw_choice = input("Selection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. Make Reciper Review\n 6. Logout\n 7. Quit \n\nYour choice: ")
+          raw_choice = input("Selection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. Make Recipe Review\n 6. Logout\n 7. Quit \n\nYour choice: ")
           choice = 0
           try:
                choice = int(raw_choice)
@@ -279,14 +366,12 @@ def main():
                elif(choice == 3):
                     cur = conn.cursor()
                     createPost(cur)
-                    conn.commit()
                     cur.close()
 
                # Choice 4
                if(choice == 4):
                     cur = conn.cursor()
-                    cur.execute("SELECT * FROM cs421g53.Users;")
-                    conn.commit()
+                    createResReview(cur)
                     cur.close()
                
                # Choice 5
