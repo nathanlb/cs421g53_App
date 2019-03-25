@@ -193,7 +193,7 @@ def createPost(cur):
           elif len(recipe_name) <= 255:
                break
      while True:
-          instructions = input("Enter the steps of your recipe (min 6 characters) [type 'q' to quit]: ")
+          instructions = input("Enter the steps of your recipe (min 6 characters) [type 'q' to quit]:\n")
           if instructions == 'q':
                clear()
                return False
@@ -222,13 +222,141 @@ def createResReview():
 #    - display recipes in db with index
 #    - user recipe index
 #    - insert review with input parameters
-def displayRecipes():
-     print("temp")
+def getUsername(cur, userID):
+     cur.execute("SELECT user_name FROM users WHERE user_id = %s", (userID,))
+     fetched = cur.fetchone()
+     return str(fetched)[1:-2]
 
 
-def createRecipeReview():
-     print("temp")
- 
+def getRecipeReviews(cur, postID):
+     cur.execute("SELECT user_id, content, rating FROM recipe_reviews WHERE post_id = %s", (postID,))
+     fetched = cur.fetchall()
+     return fetched
+
+
+def createRecipeReview(cur, postID, content, rating):
+     newID = 0
+     curReviews = getRecipeReviews(cur, str(postID))
+     if(len(curReviews) > 0):
+          newID = len(curReviews)
+     global currentUser
+     UserID = getUserID(cur, currentUser)
+     SQL = "INSERT INTO cs421g53.recipe_reviews (recipe_rev_index, rating, content, post_id, user_id) values (%s, %s, %s, %s, %s)"
+     Data = (newID, rating, content, str(postID), str(UserID))
+     cur.execute(SQL, Data)
+     conn.commit()
+     return True
+
+
+def displayRecipes(cur):
+     clear()
+     cur.execute("SELECT user_id, recipe_name, instructions, date_made, post_id FROM recipe_posts")
+     fetched = cur.fetchall()
+     for recipe in fetched:
+          username = getUsername(cur, str(recipe[0]))
+          reviews = getRecipeReviews(cur, str(recipe[4]))
+          print("'" + str(recipe[1]) + "'")
+          print("     User: " + str(username))
+          print("     Instructions: " + str(recipe[2]))
+          print("     Created On: " + str(recipe[3]))
+          print("")
+          if(reviews == []):
+               print("This recipe has no reviews.\n")
+          else:
+               print("Recipe Reviews:\n")
+               for review in reviews:
+                    revUser = getUsername(cur, str(review[0]))
+                    print("     " + revUser + ": " + str(review[1]) + " | Rating: " + str(review[2]) + "\n")
+          while True:
+               raw_choice = input("What do you want to do?\n 1. Review the recipe\n 2. See the next recipe\n 3. Quit\nYour Selection: ")
+               choice = 0
+               try:
+                    choice = int(raw_choice)
+               except:
+                    clear()
+                    print("'" + str(recipe[1]) + "'")
+                    print("     User: " + str(username))
+                    print("     Instructions: " + str(recipe[2]))
+                    print("     Created On: " + str(recipe[3]))
+                    print("")
+                    if(reviews == []):
+                         print("This recipe has no reviews.\n")
+                    else:
+                         print("Recipe Reviews:\n")
+                         for review in reviews:
+                              revUser = getUsername(cur, str(review[0]))
+                              print("     " + revUser + ": " + str(review[1]) + " | Rating: " + str(review[2]) + "\n")
+                    print("You made a bad choice! Please try again.")
+                    continue
+               if(choice <= 0 or choice > 3):
+                    clear()
+                    print("'" + str(recipe[1]) + "'")
+                    print("     User: " + str(username))
+                    print("     Instructions: " + str(recipe[2]))
+                    print("     Created On: " + str(recipe[3]))
+                    print("")
+                    if(reviews == []):
+                         print("This recipe has no reviews.\n")
+                    else:
+                         print("Recipe Reviews:\n")
+                         for review in reviews:
+                              revUser = getUsername(cur, str(review[0]))
+                              print("     " + revUser + ": " + str(review[1]) + " | Rating: " + str(review[2]) + "\n")
+                    print("You made a bad choice! Please try again.")
+                    continue
+               elif(choice == 3):
+                    clear()
+                    return True
+               elif(choice == 2):
+                    clear()
+                    break
+               elif(choice == 1):
+                    global currentUser
+                    if(currentUser == ""):
+                         clear()
+                         print("'" + str(recipe[1]) + "'")
+                         print("     User: " + str(username))
+                         print("     Instructions: " + str(recipe[2]))
+                         print("     Created On: " + str(recipe[3]))
+                         print("")
+                         if(reviews == []):
+                              print("This recipe has no reviews.\n")
+                         else:
+                              print("Recipe Reviews:\n")
+                              for review in reviews:
+                                   revUser = getUsername(cur, str(review[0]))
+                                   print("     " + revUser + ": " + str(review[1]) + " | Rating: " + str(review[2]) + "\n")
+                         print("You are not logged in!")
+                         continue
+                    while True:
+                         newRevContent = input("Write your review:\n")
+                         if(len(newRevContent) > 255):
+                              continue
+                         newRevRating = input("Please give a rating: ")
+                         revRating = 0
+                         try:
+                              revRating = int(newRevRating)
+                         except:
+                              continue
+                         createRecipeReview(cur, str(recipe[4]), newRevContent, str(revRating))
+                         break
+                    clear()
+                    print("'" + str(recipe[1]) + "'")
+                    print("     User: " + str(username))
+                    print("     Instructions: " + str(recipe[2]))
+                    print("     Created On: " + str(recipe[3]))
+                    print("")
+                    reviews = getRecipeReviews(cur, str(recipe[4]))
+                    if(reviews == []):
+                         print("This recipe has no reviews.\n")
+                    else:
+                         print("Recipe Reviews:\n")
+                         for review in reviews:
+                              revUser = getUsername(cur, str(review[0]))
+                              print("     " + revUser + ": " + str(review[1]) + " | Rating: " + str(review[2]) + "\n")
+                    continue
+     return True
+
 
 #---------------------------Basic GUI Logic-----------------------------------
 
@@ -240,7 +368,7 @@ def main():
                print("Welcome to Cookbook! You are not logged in.")
           else:
                print("Welcome to Cookbook "+currentUser+"!")
-          raw_choice = input("Selection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. Make Reciper Review\n 6. Logout\n 7. Quit \n\nYour choice: ")
+          raw_choice = input("Selection Menu:\n 1. Create User\n 2. Login\n 3. Create Recipe Post\n 4. View Recipes\n 5. View Restaurants\n 6. Logout\n 7. Quit \n\nYour choice: ")
           choice = 0
           try:
                choice = int(raw_choice)
@@ -285,7 +413,7 @@ def main():
                # Choice 4
                if(choice == 4):
                     cur = conn.cursor()
-                    cur.execute("SELECT * FROM cs421g53.Users;")
+                    displayRecipes(cur)
                     conn.commit()
                     cur.close()
                
