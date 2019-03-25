@@ -262,46 +262,51 @@ def createResReview(cur):
           if resList:
                while True:
                     strIndex = input("Enter index of restaurant to review [type 'q' to quit]: ")
+                    if strIndex == 'q':
+                         clear()
+                         return False
                     try:
                          index = int(strIndex)
                          if index >= 0 and index < len(resList):
                               break
-                         elif index == 'q':
-                              return False
                     except:
-                         print("Incvalid index!")
+                         print("Invalid index!")
                          continue
                while True:
                     strFoodRating = input("Enter food rating [0,5] [type 'q' to quit]: ")
+                    if strFoodRating == 'q':
+                         clear()
+                         return False
                     try:
                          foodRating = int(strFoodRating)
                          if foodRating >= 0 and foodRating <= 5:
                               break
-                         elif index == 'q':
-                              return False
                     except:
                          print("Invalid rating!")
                          continue
                
                while True:
                     strServRating = input("Enter service rating [0,5] [type 'q' to quit]: ")
+                    if strServRating == 'q':
+                         clear()
+                         return False
                     try:
                          servRating = int(strServRating)
                          if servRating >= 0 and servRating <= 5:
                               break
-                         elif index == 'q':
-                              return False
                     except:
                          print("Invalid rating!")
                          continue
                
                if insertResReview(cur, resList[index][0], foodRating, servRating):
-                    print("\nRestaurant review successfully submitted.\n")
+                    clear()
+                    print("Restaurant review successfully submitted.\n")
           else:
+               clear()
                return False
      else:
           clear()
-          print("\nYou must be logged in to submit a review.\n")
+          print("You must be logged in to submit a review.\n")
           return False
 
 # -----------------------------------------------------------------------------------------------
@@ -455,7 +460,7 @@ def main():
                print("Welcome to Cookbook! You are not logged in.")
           else:
                print("Welcome to Cookbook "+currentUser+"!")
-          raw_choice = input("Selection Menu:\n 1. Create User\n 2. Login\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. View Recipes\n 6. Logout\n 7. Quit \n\nYour choice: ")
+          raw_choice = input("Selection Menu:\n 1. Sign Up\n 2. Log In\n 3. Make Recipe Post\n 4. Make Restaurant Review\n 5. View Recipes\n 6. Logout\n 7. Quit \n\nYour choice: ")
           choice = 0
           try:
                choice = int(raw_choice)
